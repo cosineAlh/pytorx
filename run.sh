@@ -1,13 +1,7 @@
 #!/usr/bin/env sh
 
-############### Host   ##############################
-HOST=$(hostname)
-echo "Current host is: $HOST"
-
-
 # path to benchmark
-benchmark="$PYTORX_HOME/benchmark/mnist.py"
-
+benchmark="./benchmark/mnist.py"
 
 ############### Neural network ############################
 epochs=20
@@ -22,7 +16,7 @@ gmin=0.0000000333
 freq=10e6
 
 {
-$PYTHON $benchmark  --epochs $epochs \
+python3 $benchmark  --epochs $epochs \
                     --batch_size $batch_size\
                     --test_batch_size $test_batch_size\
                     --crxb_size $crxb_size\

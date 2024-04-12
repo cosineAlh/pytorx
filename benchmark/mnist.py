@@ -4,6 +4,7 @@ import argparse
 import os
 import shutil
 import warnings
+import sys
 
 import torch
 import torch.nn as nn
@@ -11,6 +12,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 
+sys.path.append(r"./")
 from python.torx.module.layer import crxb_Conv2d
 from python.torx.module.layer import crxb_Linear
 
@@ -18,7 +20,7 @@ from python.torx.module.layer import crxb_Linear
 def save_checkpoint(state, is_best, filename):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, './benchmark/model_best.pth.tar')
 
 
 class AverageMeter(object):
@@ -76,8 +78,6 @@ class Net(nn.Module):
         x = self.fc2(x)
 
         return F.log_softmax(x, dim=1)
-
-
 
 
 def train(model, device, criterion, optimizer, train_loader, epoch):
@@ -211,18 +211,14 @@ def main():
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
+        datasets.MNIST('./data', train=True, download=True,
+                        transform=transforms.Compose([
+                        transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
+        datasets.MNIST('./data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     model = Net(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
@@ -254,7 +250,7 @@ def main():
             is_best = val_loss > best_error
             best_error = min(val_loss, best_error)
 
-            filename = 'checkpoint_' + str(args.crxb_size) + '.pth.tar'
+            filename = './benchmark/checkpoint_' + str(args.crxb_size) + '.pth.tar'
             save_checkpoint(state={
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
@@ -263,7 +259,7 @@ def main():
             }, is_best=is_best, filename=filename)
 
     elif args.test:
-        modelfile = 'checkpoint_' + str(args.crxb_size) + '.pth.tar'
+        modelfile = './benchmark/checkpoint_' + str(args.crxb_size) + '.pth.tar'
         if os.path.isfile(modelfile):
             print("=> loading checkpoint '{}'".format(modelfile))
             checkpoint = torch.load(modelfile)
