@@ -13,13 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
-import pandas as pd
 import torch
 
-
 class IrSolver(object):
-    """This class solves IR drop in a crossbar array and calculates the output current w.r.t. wire resistence in the
-    crossbar array.
+    """
+    This class solves IR drop in a crossbar array and calculates the output current w.r.t. wire resistence in the crossbar array.
     An example of using the solver is:
     vdd = 3.3
     Gsize = 64 # crxb size
@@ -27,6 +25,7 @@ class IrSolver(object):
     Gload = 10 # ADC and DAC loading conductance
     Gmin = 1/3e5
     Gmax = 1/3e2
+
     x = torch.rand(Gsize, 1, 1, 1, 1)*vdd # generating input
     Gmat = torch.rand(Gsize, Gsize, 1, 1)*(Gmax-Gmin)+Gmin # generating crxb
     iout_ideal = torch.matmul(Gmat.unsqueeze(4).permute(2, 3, 4, 1, 0), x.permute(2, 3, 4, 0 ,1)).cuda() # ideal current output
@@ -50,36 +49,29 @@ class IrSolver(object):
         Returns:
             None
         """
-        self.input_x = input_x
         # input voltages
+        self.input_x = input_x
 
+        # crossbar
         self.Gmat = Gmat
-        # ReRAM crossbar
 
+        # ideal output current (no wire resistance)
         self.iout_ideal = torch.zeros(Csize, 1)
-        # the ideal output current with no wire resistance
 
         self.mat_col = []
         self.mat_row = []
         self.mat_data = []
-        # coodinates and data of the node conductance matrix.
-        # We store the matrix in the coo format to save memory usage.
 
         self.GRsize = Rsize
         self.GCsize = Csize
-        # size of the crossbar array
-
         self.Gwire = Gwire
-        # wire resistance
-
         self.Gload = Gload
-        # load resistance of the crossbar
-        # we set the value to model the output resistance of the DAC and the input resistance of the TIA
 
         self.device = device.type
 
-    def caliout(self) -> "output current w.r.t. IR drop":
-        """This function is to calcuate the output of the current of the corssbar
+    def caliout(self):
+        """
+        This function is to calcuate the output of the current of the corssbar
 
         Args:
             None
@@ -87,11 +79,11 @@ class IrSolver(object):
         Retures:
             output current of the crossbar w.r.t. IR drop
         """
-        # start1 = time.time()
         if self.device == "cpu":
             current_mat = self._nodematgen()
         else:
             current_mat = self._nodematgen().cuda()
+
         # Generate the current array I of the MNA, which solve the node voltages using GV = I
         if self.device == "cpu":
             node_i = torch.LongTensor([self.mat_row, self.mat_col])
@@ -99,13 +91,10 @@ class IrSolver(object):
             node_i = torch.LongTensor([self.mat_row, self.mat_col]).cuda()
         node_v = torch.stack(self.mat_data)
         node_sp = torch.sparse.FloatTensor(node_i, node_v)
-        # Generate the node conductace G
 
         nodes, _ = torch.solve(current_mat.permute(2, 3, 0, 1, 4).contiguous().view(current_mat.size()[2],
                                                                                     current_mat.size()[3],
-                                                                                    current_mat.size()[0],
-                                                                                    -1),
-                               node_sp.to_dense().permute(2, 3, 0, 1))
+                                                                                    current_mat.size()[0], -1), node_sp.to_dense().permute(2, 3, 0, 1))
         # Solve batched linear systems
         del _
         temp = nodes.shape[2]
@@ -131,7 +120,8 @@ class IrSolver(object):
         self.mat_data = []
 
     def _add_data(self, row_data, col_data, data_data):
-        """This function adds elements to the coo matrix
+        """
+        This function adds elements to the coo matrix
 
         Args:
             row_data (int): the row coordinate of the coo matrix
@@ -149,7 +139,8 @@ class IrSolver(object):
             self.mat_data.append(data_data.cuda())
 
     def _nodematgen(self):
-        """This function generates the node conductance matrix. The node conductance matrix is batched
+        """
+        This function generates the node conductance matrix. The node conductance matrix is batched
         according to dimension of the input tensors. The detailed descrapition of the node conductance matrix please to
         this link: https://lpsa.swarthmore.edu/Systems/Electrical/mna/MNA1.html
 
@@ -160,10 +151,8 @@ class IrSolver(object):
             The conductance matrix in coo format.
             current_mat (tensor.float): the current matrix.
         """
-        current_mat = torch.zeros(self.GRsize ** 2 * 2, self.input_x.shape[1], self.input_x.shape[2],
-                                  self.input_x.shape[3], self.input_x.shape[4])
+        current_mat = torch.zeros(self.GRsize ** 2 * 2, self.input_x.shape[1], self.input_x.shape[2], self.input_x.shape[3], self.input_x.shape[4])
         extender = torch.ones(self.Gmat.size()[2], self.Gmat.size()[3])
-        # turn the matrix G into batches
 
         electrode = ['top', 'bot']
         counter = 0
@@ -208,48 +197,3 @@ class IrSolver(object):
                     counter += 1
 
         return current_mat
-
-
-class ErrorLog(object):
-    """This class saves the mean and std of the error of IR drop to
-    a csv file for future retraining.
-
-    """
-
-    def __init__(self, N_crxb_row, N_crxb_col, module_id):
-        '''Initialize a pandas dataframe here to store the generated data
-
-        Args:
-            N_crxb_col (int): column size of the corssbar
-            N_crxb_row (int): row size of the corssbar
-            module_id (int): the id of the current module
-        '''
-        # self.columns = ['input', 'weight', 'output']
-        self.columns = ['mean', 'std']
-        self.df = pd.DataFrame(columns=self.columns)
-        self.file_name = str(N_crxb_row) + 'x' + str(N_crxb_col) + "_" + \
-                         str(module_id) + '_error' + '.csv'
-
-    def append_data(self, mean: object, std: object) -> object:
-        """Add data to the csv file
-
-        Args:
-            mean (tensor): mean of the error
-            std (tensor): std of the data
-        """
-        mean_str = str(mean.flatten().cpu().numpy())
-        mean_len = mean_str.__len__()
-        std_str = str(std.flatten().cpu().numpy())
-        std_len = std_str.__len__()
-
-        data_dict = {'mean': mean_str[1:mean_len - 1],
-                     'std': std_str[1:std_len - 1]}
-        self.df.loc[len(self.df)] = data_dict
-
-    def save_to_csv(self):
-        """save the data to csv file
-
-        Returns:
-            a csv file named as file_name
-        """
-        self.df.to_csv(self.file_name, index=False)

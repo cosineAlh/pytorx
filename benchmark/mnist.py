@@ -51,23 +51,15 @@ class Net(nn.Module):
         # self.conv2_drop = nn.Dropout2d()
         # self.fc1 = nn.Linear(320, 50)
         # self.fc2 = nn.Linear(50, 10)
-        self.conv1 = crxb_Conv2d(1, 10, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                                 gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
-                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
-                                 enable_noise=enable_noise, ir_drop=ir_drop, device=device)
-        self.conv2 = crxb_Conv2d(10, 20, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                                 gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
-                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
-                                 enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.conv1 = crxb_Conv2d(1, 10, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.conv2 = crxb_Conv2d(10, 20, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = crxb_Linear(320, 50, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                               gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
-                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise,
-                               enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
-        self.fc2 = crxb_Linear(50, 10, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                               gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
-                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise,
-                               enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
+        self.fc1 = crxb_Linear(320, 50, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
+                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
+        self.fc2 = crxb_Linear(50, 10, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
+                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
@@ -87,7 +79,6 @@ def train(model, device, criterion, optimizer, train_loader, epoch):
     correct = 0
 
     for batch_idx, (data, target) in enumerate(train_loader):
-
         for name, module in model.named_modules():
             if isinstance(module, crxb_Conv2d) or isinstance(module, crxb_Linear):
                 module._reset_delta()
@@ -104,12 +95,10 @@ def train(model, device, criterion, optimizer, train_loader, epoch):
 
         if batch_idx % 10 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), train_loader.sampler.__len__(),
-                       100. * batch_idx / len(train_loader), loss.item()))
+                epoch, batch_idx * len(data), train_loader.sampler.__len__(), 100. * batch_idx / len(train_loader), loss.item()))
 
     print('\nTrain set: Accuracy: {}/{} ({:.4f}%)\n'.format(
-        correct, train_loader.sampler.__len__(),
-        100. * correct / train_loader.sampler.__len__()))
+        correct, train_loader.sampler.__len__(), 100. * correct / train_loader.sampler.__len__()))
 
     return losses.avg
 
@@ -119,7 +108,6 @@ def validate(args, model, device, criterion, val_loader):
     test_loss = 0
     correct = 0
     with torch.no_grad():
-
         for batch_idx, (data, target) in enumerate(val_loader):
             data, target = data.to(device), target.to(device)
             output = model(data)
@@ -129,13 +117,11 @@ def validate(args, model, device, criterion, val_loader):
 
             if args.ir_drop:
                 print('\nTest set: Accuracy: {}/{} ({:.4f}%)\n'.format(
-                    correct, val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1),
-                             100. * correct / (val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1))))
+                    correct, val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1), 100. * correct / (val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1))))
 
         test_loss /= len(val_loader.dataset)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(
-            test_loss, correct, val_loader.sampler.__len__(),
-            100. * correct / val_loader.sampler.__len__()))
+            test_loss, correct, val_loader.sampler.__len__(), 100. * correct / val_loader.sampler.__len__()))
 
         return test_loss
 
@@ -159,9 +145,10 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--log_interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
-
     parser.add_argument('--save_model', action='store_true', default=False,
                         help='For Saving the current Model')
+    
+    # User define parameters
     parser.add_argument('--crxb_size', type=int, default=64, help='corssbar size')
     parser.add_argument('--vdd', type=float, default=3.3, help='supply voltage')
     parser.add_argument('--gwire', type=float, default=0.0357,
@@ -188,8 +175,6 @@ def main():
                         help='scaler to compress the conductance')
     parser.add_argument('--temp', type=float, default=300,
                         help='scaler to compress the conductance')
-
-
     args = parser.parse_args()
 
     best_error = 0
@@ -204,21 +189,17 @@ def main():
         raise KeyError("Noise can cause unsuccessful training!")
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
-
     torch.manual_seed(args.seed)
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=True, download=True,
-                        transform=transforms.Compose([
-                        transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])),
+        datasets.MNIST('./data', train=True, download=True, transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=False, transform=transforms.Compose([
-            transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])),
+        datasets.MNIST('./data', train=False, transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     model = Net(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
@@ -226,19 +207,13 @@ def main():
                 enable_SAF=args.enable_SAF, enable_noise=args.enable_noise, enable_ec_SAF=args.enable_ec_SAF).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     criterion = torch.nn.CrossEntropyLoss().to(device)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2,
-                                                           patience=2, verbose=True, threshold=0.5,
-                                                           threshold_mode='rel', min_lr=1e-4)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=2, verbose=True, threshold=0.5, threshold_mode='rel', min_lr=1e-4)
     loss_log = []
     if not args.test:
         for epoch in range(args.epochs):
             print("epoch {0}, and now lr = {1:.4f}\n".format(epoch, optimizer.param_groups[0]['lr']))
-            train_loss = train(model=model, device=device, criterion=criterion,
-                               optimizer=optimizer, train_loader=train_loader,
-                               epoch=epoch)
-            val_loss = validate(args=args, model=model, device=device, criterion=criterion,
-                                val_loader=test_loader)
-
+            train_loss = train(model=model, device=device, criterion=criterion, optimizer=optimizer, train_loader=train_loader, epoch=epoch)
+            val_loss = validate(args=args, model=model, device=device, criterion=criterion, val_loader=test_loader)
             scheduler.step(val_loss)
 
             # break the training
@@ -265,14 +240,9 @@ def main():
             checkpoint = torch.load(modelfile)
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded checkpoint '{}'"
-                  .format(modelfile))
+            print("=> loaded checkpoint '{}'".format(modelfile))
 
-            validate(args=args, model=model, device=device, criterion=criterion,
-                     val_loader=test_loader)
-
-    # if (args.save_model):
-    #     torch.save(model.state_dict(), "mnist_cnn.pt")
+            validate(args=args, model=model, device=device, criterion=criterion, val_loader=test_loader)
 
 
 if __name__ == '__main__':

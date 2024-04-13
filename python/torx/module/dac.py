@@ -38,10 +38,9 @@ quantize_dac = _quantize_dac.apply
 
 
 class DAC(nn.Module):
-
     def __init__(self, nbits=8, Vdd=3.3, Vss=0, quan_method='dynamic'):
         super(DAC, self).__init__()
-        r"""
+        """
         This Digital-Analog Converter (DAC) module includes two functions:
         1) quantize the floating-point input (FP32) to fixed-point integer;
         2) the fixed-point integer will be converted into voltages.
@@ -53,8 +52,7 @@ class DAC(nn.Module):
             nbits (int): number of bits (resolution) of DAC.
             Vdd (fp): Vdd voltage (* in unit of volt).
             Vss (fp): Vss voltage (* in unit of volt).
-            quan_method (str): describe the quantization method, default method is
-                               mainly used for functionality test.
+            quan_method (str): describe the quantization method, default method is mainly used for functionality test.
         """
         self.nbits = nbits
         self.Vdd = Vdd
@@ -77,7 +75,7 @@ class DAC(nn.Module):
         self.training = True  # flag to determine the operation mode
 
     def forward(self, input):
-        r'''
+        '''
         This function performs the conversion. Note that, output tensor (voltage) is in the
         same shape as the input tensor (FP32). The input reshape operation is completed by
         other module.
@@ -87,11 +85,8 @@ class DAC(nn.Module):
         # update the threshold before clipping
         # TODO: change the threshold tuning into KL_div calibration method
         self.update_threshold(input)
-        input_clip = F.hardtanh(input, min_val=-self.threshold.item(),
-                                max_val=self.threshold.item())  # clip input
-
+        input_clip = F.hardtanh(input, min_val=-self.threshold.item(), max_val=self.threshold.item())  # clip input
         self.delta_x = self.threshold.item()/self.half_lvls
-
         input_quan = quantize_dac(input_clip, self.delta_x)
 
         # step 2: convert to voltage, here the offset (reference) voltage term is emitted

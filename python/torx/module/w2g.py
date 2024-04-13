@@ -27,8 +27,7 @@ class w2g(nn.Module):
     conductance values. output[0] is the G_pos and output[1] is the G_neg
     '''
 
-    def __init__(self, delta_g, Gmin, G_SA0, G_SA1, weight_shape,
-                 enable_rand=True, enable_SAF=False):
+    def __init__(self, delta_g, Gmin, G_SA0, G_SA1, weight_shape, enable_rand=True, enable_SAF=False):
         super(w2g, self).__init__()
         self.delta_g = delta_g
         self.Gmin = Gmin
@@ -38,23 +37,18 @@ class w2g(nn.Module):
         self.p_SA1 = 0.1
         self.enable_rand = enable_rand
         self.enable_SAF = enable_SAF
-        self.SAF_pos = SAF(weight_shape, p_SA0=self.p_SA0, p_SA1=self.p_SA1,
-                           G_SA0=self.G_SA0, G_SA1=self.G_SA1)
-        self.SAF_neg = SAF(weight_shape, p_SA0=self.p_SA0, p_SA1=self.p_SA1,
-                           G_SA0=self.G_SA0, G_SA1=self.G_SA1)
+        self.SAF_pos = SAF(weight_shape, p_SA0=self.p_SA0, p_SA1=self.p_SA1, G_SA0=self.G_SA0, G_SA1=self.G_SA1)
+        self.SAF_neg = SAF(weight_shape, p_SA0=self.p_SA0, p_SA1=self.p_SA1, G_SA0=self.G_SA0, G_SA1=self.G_SA1)
 
     def forward(self, input):
         # x_relu() function is Critical
-        self.G_pos = self.Gmin + x_relu(input) * self.delta_g
-        self.G_neg = self.Gmin + F.relu(-input) * self.delta_g
+        self.G_pos = self.Gmin + x_relu(input)*self.delta_g
+        self.G_neg = self.Gmin + F.relu(-input)*self.delta_g
         # the following two steps will update the SAF masking if enable_rand is True
         if self.enable_SAF:
-            output = torch.cat((self.SAF_pos(self.G_pos).unsqueeze(0),
-                                self.SAF_neg(self.G_neg).unsqueeze(0)),
-                               0)
+            output = torch.cat((self.SAF_pos(self.G_pos).unsqueeze(0), self.SAF_neg(self.G_neg).unsqueeze(0)), 0)
         else:
-            output = torch.cat((self.G_pos.unsqueeze(0),
-                                self.G_neg.unsqueeze(0)), 0)
+            output = torch.cat((self.G_pos.unsqueeze(0), self.G_neg.unsqueeze(0)), 0)
 
         return output
 
@@ -63,10 +57,8 @@ class w2g(nn.Module):
         pos_SA1 = self.SAF_pos.index_SA1().float().cuda()
         neg_SA0 = self.SAF_neg.index_SA0().float().cuda()
         neg_SA1 = self.SAF_neg.index_SA1().float().cuda()
-        G_pos_diff = (self.G_pos-self.G_SA0)*pos_SA0 + \
-            (self.G_pos-self.G_SA1)*pos_SA1
-        G_neg_diff = (self.G_neg-self.G_SA0)*neg_SA0 + \
-            (self.G_neg-self.G_SA1)*neg_SA1
+        G_pos_diff = (self.G_pos-self.G_SA0)*pos_SA0 + (self.G_pos-self.G_SA1)*pos_SA1
+        G_neg_diff = (self.G_neg-self.G_SA0)*neg_SA0 + (self.G_neg-self.G_SA1)*neg_SA1
 
         return G_pos_diff, G_neg_diff
 
@@ -109,15 +101,3 @@ class _newrelu(torch.autograd.Function):
         return grad_input
     
 x_relu = _newrelu.apply
-
-############################################################
-# Testbenchs
-############################################################
-
-def test_w2g_module_output_conductance_range():
-    '''
-    ensure the w2g module has the correct output conductance range
-    which is between G_min and G_max.
-    '''
-
-    return

@@ -1,6 +1,5 @@
 import torch
 
-
 class _adc(torch.autograd.Function):
 
     @staticmethod
