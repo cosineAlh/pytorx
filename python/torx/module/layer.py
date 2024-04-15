@@ -124,8 +124,8 @@ class crxb_Conv2d(nn.Conv2d):
 
         # 2.2. add paddings
         weight_padded = F.pad(weight_flatten, self.w_pad, mode='constant', value=0)
-        input_padded = F.pad(input_unfold, self.input_pad, mode='constant', value=0
-                             )
+        input_padded = F.pad(input_unfold, self.input_pad, mode='constant', value=0)
+        
         # 2.3. reshape to crxb size
         input_crxb = input_padded.view(input.shape[0], 1, self.crxb_row, self.crxb_size, input_padded.shape[2])
         weight_crxb = weight_padded.view(self.crxb_col, self.crxb_size, self.crxb_row, self.crxb_size).transpose(1, 2)
