@@ -31,13 +31,14 @@ test noise temp=380 acc=92.34
 test noise temp=390 acc=92.29
 test noise temp=400 acc=92.28
 
-check: wrong result!
+comment: wrong result!
 
 #=====================================
 test variation temp=320 acc=97.99
 
-check: wrong result!
+comment: wrong result!
 
+#=====================================
 #=====================================
 vdd=1
 crxb_size=128
@@ -45,9 +46,19 @@ gmax=3.85e-8
 gmin=5e-9
 freq=1.2e9
 temp=300
+variation_gamma=0.1
 
 test no variations acc=98.71
 test variation temp=300 gmax=3.85e-8 gmin=5.0e-9 acc=98.49
 test variation temp=310 gmax=3.80e-8 gmin=5.1e-9 acc=98.57
 test variation temp=320 gmax=3.70e-8 gmin=5.2e-9 acc=98.58
-test variation temp=400 gmax=2.32e-8 gmin=6.0e-9 acc=10.39
+
+comment: wrong
+
+#=====================================
+test no variations acc=98.71
+test variation + retention 1e2s drift=0.0 acc=98.38
+test variation + retention 1e2s drift=0.1 acc=93.16
+test variation + retention 1e2s drift=0.2 acc=53.85
+test variation + retention 1e2s drift=0.3 acc=21.71
+test variation + retention 1e2s drift=0.4 acc=10.50

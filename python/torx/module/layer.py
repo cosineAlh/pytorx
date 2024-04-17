@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -40,7 +41,7 @@ class crxb_Conv2d(nn.Conv2d):
 
     def __init__(self, in_channels, out_channels, kernel_size, ir_drop, device, gmax, gmin, gwire,
                  gload, scaler_dw=1, vdd=3.3, stride=1, padding=0, dilation=1, enable_noise=True,
-                 enable_resistance_variance=False, resistance_variance_gamma=0. ,
+                 enable_resistance_variance=False, resistance_variance_gamma=0. , enable_retention=False, retention_time=0, drift_coefficient=0.1,
                  freq=10e6, temp=300, groups=1, bias=True, crxb_size=64, quantize=8, enable_SAF=False, enable_ec_SAF=False):
         super(crxb_Conv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias)
         assert self.groups == 1, "currently not support grouped convolution for custom conv"
@@ -70,7 +71,7 @@ class crxb_Conv2d(nn.Conv2d):
         # ReRAM cells
         self.Gmax = gmax  # max conductance
         self.Gmin = gmin  # min conductance
-        self.delta_g = (self.Gmax - self.Gmin) / (2 ** 7)  # conductance step
+        self.delta_g = (self.Gmax - self.Gmin) / (2 ** 7)  # conductance step (2**7 means 8bit quantization)
         self.w2g = w2g(self.delta_g, Gmin=self.Gmin, G_SA0=self.Gmax, G_SA1=self.Gmin, weight_shape=weight_crxb.shape, enable_SAF=enable_SAF)
         self.Gwire = gwire
         self.Gload = gload
@@ -87,6 +88,9 @@ class crxb_Conv2d(nn.Conv2d):
         self.enable_stochastic_noise = enable_noise
         self.enable_resistance_variance = enable_resistance_variance
         self.resistance_variance_gamma = resistance_variance_gamma
+        self.enable_retention = enable_retention
+        self.retention_time = retention_time
+        self.drift_coefficient = drift_coefficient
         self.freq = freq  # operating frequency
         self.kb = 1.38e-23  # Boltzmann const
         self.temp = temp  # temperature in kelvin
@@ -132,6 +136,12 @@ class crxb_Conv2d(nn.Conv2d):
         # convert the floating point weight into conductance pair values
         G_crxb = self.w2g(weight_crxb)
         # 2.4. compute matrix multiplication followed by reshapes
+        if self.enable_retention:
+            # random generate drift direcion for each cell
+            sign = torch.randint_like(G_crxb, -1, 2)
+            ratio = self.retention_time**(self.drift_coefficient*sign)
+            G_crxb = torch.clamp(G_crxb*ratio, G_crxb.min(), G_crxb.max())  
+
         if self.enable_resistance_variance:
             gaussian_variance = (torch.randn(G_crxb.shape)) * self.resistance_variance_gamma
             if self.device.type == 'cuda':
@@ -210,6 +220,8 @@ class crxb_Conv2d(nn.Conv2d):
         if self.bias is not None:
             output += self.bias.unsqueeze(1).unsqueeze(1)
 
+        #print(np.shape(G_crxb))
+        #np.save("G.npy", G_crxb)
         return output
 
     def _reset_delta(self):
@@ -244,7 +256,7 @@ class crxb_Linear(nn.Linear):
     """
 
     def __init__(self, in_features, out_features, ir_drop, device, gmax, gmin, gwire, gload, freq=10e6,
-                 enable_resistance_variance=False, resistance_variance_gamma=0. ,
+                 enable_resistance_variance=False, resistance_variance_gamma=0. , enable_retention=False, retention_time=0, drift_coefficient=0.1,
                  vdd=3.3, scaler_dw=1, temp=300, bias=True, crxb_size=64, quantize=8, enable_ec_SAF=False, enable_noise=True, enable_SAF=False):
         super(crxb_Linear, self).__init__(in_features, out_features, bias)
 
@@ -286,6 +298,9 @@ class crxb_Linear(nn.Linear):
         self.enable_stochastic_noise = enable_noise
         self.enable_resistance_variance = enable_resistance_variance
         self.resistance_variance_gamma = resistance_variance_gamma
+        self.enable_retention = enable_retention
+        self.retention_time = retention_time
+        self.drift_coefficient = drift_coefficient
         self.freq = freq  # operating frequency
         self.kb = 1.38e-23  # Boltzmann const
         self.temp = temp  # temperature in kelvin
@@ -326,6 +341,12 @@ class crxb_Linear(nn.Linear):
         # convert the floating point weight into conductance pair values
         G_crxb = self.w2g(weight_crxb)
         # 2.4. compute matrix multiplication
+        if self.enable_retention:
+            # random generate drift direcion for each cell
+            sign = torch.randint_like(G_crxb, -1, 2)
+            ratio = self.retention_time**(self.drift_coefficient*sign)
+            G_crxb = torch.clamp(G_crxb*ratio, G_crxb.min(), G_crxb.max())       
+
         if self.enable_resistance_variance:
             gaussian_variance = (torch.randn(G_crxb.shape)) *  self.resistance_variance_gamma
             if self.device.type == "cuda":
@@ -395,11 +416,10 @@ class crxb_Linear(nn.Linear):
         output_clip = F.hardtanh(output_crxb, min_val=-self.h_lvl * self.delta_i.item(), max_val=self.h_lvl * self.delta_i.item())
         output_adc = adc(output_clip, self.delta_i, self.delta_y)
 
-        if self.w2g.enable_SAF:
-            if self.enable_ec_SAF:
-                G_pos_diff, G_neg_diff = self.w2g.error_compensation()
-                ec_scale = self.delta_y / self.delta_i
-                output_adc += (torch.matmul(G_pos_diff, input_crxb) - torch.matmul(G_neg_diff, input_crxb)) * ec_scale
+        if self.w2g.enable_SAF and self.enable_ec_SAF:
+            G_pos_diff, G_neg_diff = self.w2g.error_compensation()
+            ec_scale = self.delta_y / self.delta_i
+            output_adc += (torch.matmul(G_pos_diff, input_crxb) - torch.matmul(G_neg_diff, input_crxb)) * ec_scale
 
         output_sum = torch.sum(output_adc, dim=2).squeeze(dim=3)
         output = output_sum.view(input.shape[0], output_sum.shape[1] * output_sum.shape[2]).index_select(dim=1, index=self.out_index)

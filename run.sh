@@ -15,6 +15,8 @@ gmax=3.85e-8
 gmin=5e-9
 scaler_dw=1
 resistance_variance_gamma=0.1
+retention_time=1e2
+drift_coefficient=0.1
 freq=1.2e9
 temp=300
 
@@ -29,10 +31,13 @@ python3 $benchmark  --epochs $epochs\
                     --gload $gload\
                     --gmax $gmax\
                     --gmin $gmin\
+                    --no_cuda \
                     --test \
                     --enable_resistance_variance \
-                    --no_cuda \
+                    --enable_retention \
                     --resistance_variance_gamma $resistance_variance_gamma\
+                    --retention_time $retention_time\
+                    --drift_coefficient $drift_coefficient\
                     --scaler_dw $scaler_dw\
                     --freq $freq\
                     --temp $temp
@@ -45,3 +50,4 @@ python3 $benchmark  --epochs $epochs\
 # --no_cuda \
 # --enable_SAF \
 # --enable_resistance_variance \
+# --enable_retention \

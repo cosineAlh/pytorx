@@ -5,6 +5,7 @@ import os
 import shutil
 import warnings
 import sys
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -43,21 +44,21 @@ class AverageMeter(object):
 
 
 class Net(nn.Module):
-    def __init__(self, crxb_size, gmin, gmax, gwire, gload, vdd, ir_drop, freq, temp, device, scaler_dw, enable_noise, enable_SAF, enable_ec_SAF, enable_resistance_variance, resistance_variance_gamma,):
+    def __init__(self, crxb_size, gmin, gmax, gwire, gload, vdd, ir_drop, freq, temp, device, scaler_dw, enable_noise, enable_SAF, enable_ec_SAF, enable_resistance_variance, resistance_variance_gamma, enable_retention, retention_time, drift_coefficient):
         super(Net, self).__init__()
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         # self.conv2_drop = nn.Dropout2d()
         # self.fc1 = nn.Linear(320, 50)
         # self.fc2 = nn.Linear(50, 10)
-        self.conv1 = crxb_Conv2d(1, 10, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+        self.conv1 = crxb_Conv2d(1, 10, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp, enable_retention=enable_retention, retention_time=retention_time, drift_coefficient=drift_coefficient,
                                  enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
-        self.conv2 = crxb_Conv2d(10, 20, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+        self.conv2 = crxb_Conv2d(10, 20, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp, enable_retention=enable_retention, retention_time=retention_time, drift_coefficient=drift_coefficient,
                                  enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = crxb_Linear(320, 50, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
+        self.fc1 = crxb_Linear(320, 50, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp, enable_retention=enable_retention, retention_time=retention_time, drift_coefficient=drift_coefficient,
                                enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
-        self.fc2 = crxb_Linear(50, 10, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
+        self.fc2 = crxb_Linear(50, 10, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp, enable_retention=enable_retention, retention_time=retention_time, drift_coefficient=drift_coefficient,
                                enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
 
     def forward(self, x):
@@ -106,9 +107,11 @@ def validate(args, model, device, criterion, val_loader):
     model.eval()
     test_loss = 0
     correct = 0
+    #print(model.conv1.weight)
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(val_loader):
             data, target = data.to(device), target.to(device)
+            #print(batch_idx)
             output = model(data)
             test_loss += criterion(output, target).item()
             pred = output.max(1, keepdim=True)[1]  # get the index of the max log-probability
@@ -169,7 +172,13 @@ def main():
     parser.add_argument('--enable_resistance_variance', action='store_true', default=False,
                         help='switch to turn on resistance variance analysis')
     parser.add_argument('--resistance_variance_gamma', type=float, default=0.1,
-                        help='wire conductacne')
+                        help='variation gamma')
+    parser.add_argument('--enable_retention', action='store_true', default=False,
+                        help='switch to turn on retention')
+    parser.add_argument('--retention_time', type=float, default=1e2,
+                        help='retention time')
+    parser.add_argument('--drift_coefficient', type=float, default=0.1,
+                        help='drift coefficient')
     parser.add_argument('--freq', type=float, default=10e6,
                         help='scaler to compress the conductance')
     parser.add_argument('--temp', type=float, default=300,
@@ -203,6 +212,7 @@ def main():
 
     model = Net(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
                 vdd=args.vdd, ir_drop=args.ir_drop, device=device, scaler_dw=args.scaler_dw, freq=args.freq, temp=args.temp,
+                enable_retention=args.enable_retention, retention_time=args.retention_time, drift_coefficient=args.drift_coefficient,
                 enable_resistance_variance=args.enable_resistance_variance, resistance_variance_gamma=args.resistance_variance_gamma, 
                 enable_SAF=args.enable_SAF, enable_noise=args.enable_noise, enable_ec_SAF=args.enable_ec_SAF).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
