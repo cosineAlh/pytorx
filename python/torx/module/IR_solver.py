@@ -92,11 +92,10 @@ class IrSolver(object):
         node_v = torch.stack(self.mat_data)
         node_sp = torch.sparse.FloatTensor(node_i, node_v)
 
-        nodes, _ = torch.solve(current_mat.permute(2, 3, 0, 1, 4).contiguous().view(current_mat.size()[2],
-                                                                                    current_mat.size()[3],
-                                                                                    current_mat.size()[0], -1), node_sp.to_dense().permute(2, 3, 0, 1))
+        nodes = torch.linalg.solve(node_sp.to_dense().permute(2, 3, 0, 1), current_mat.permute(2, 3, 0, 1, 4).contiguous().view(
+                                   current_mat.size()[2], current_mat.size()[3], current_mat.size()[0], -1))
+        
         # Solve batched linear systems
-        del _
         temp = nodes.shape[2]
         outcurrent = nodes[:, :, temp - self.GCsize:temp, :]
         del nodes
@@ -107,7 +106,8 @@ class IrSolver(object):
         return outcurrent
 
     def resetcoo(self):
-        """This function resets the coo matrix for a new calculation.
+        """
+        This function resets the coo matrix for a new calculation.
 
         Args:
             None

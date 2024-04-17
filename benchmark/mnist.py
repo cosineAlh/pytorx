@@ -43,8 +43,7 @@ class AverageMeter(object):
 
 
 class Net(nn.Module):
-    def __init__(self, crxb_size, gmin, gmax, gwire, gload, vdd, ir_drop, freq, temp, device, scaler_dw, enable_noise,
-                 enable_SAF, enable_ec_SAF):
+    def __init__(self, crxb_size, gmin, gmax, gwire, gload, vdd, ir_drop, freq, temp, device, scaler_dw, enable_noise, enable_SAF, enable_ec_SAF, enable_resistance_variance, resistance_variance_gamma,):
         super(Net, self).__init__()
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -52,14 +51,14 @@ class Net(nn.Module):
         # self.fc1 = nn.Linear(320, 50)
         # self.fc2 = nn.Linear(50, 10)
         self.conv1 = crxb_Conv2d(1, 10, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
-                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+                                 enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
         self.conv2 = crxb_Conv2d(10, 20, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw, gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
-                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+                                 enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF, enable_noise=enable_noise, ir_drop=ir_drop, device=device)
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = crxb_Linear(320, 50, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
-                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
+                               enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
         self.fc2 = crxb_Linear(50, 10, crxb_size=crxb_size, scaler_dw=scaler_dw, gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
-                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
+                               enable_resistance_variance=enable_resistance_variance, resistance_variance_gamma=resistance_variance_gamma, vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise, enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
@@ -167,6 +166,10 @@ def main():
                         help='switch to turn on SAF analysis')
     parser.add_argument('--enable_ec_SAF', action='store_true', default=False,
                         help='switch to turn on SAF error correction')
+    parser.add_argument('--enable_resistance_variance', action='store_true', default=False,
+                        help='switch to turn on resistance variance analysis')
+    parser.add_argument('--resistance_variance_gamma', type=float, default=0.1,
+                        help='wire conductacne')
     parser.add_argument('--freq', type=float, default=10e6,
                         help='scaler to compress the conductance')
     parser.add_argument('--temp', type=float, default=300,
@@ -200,11 +203,13 @@ def main():
 
     model = Net(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
                 vdd=args.vdd, ir_drop=args.ir_drop, device=device, scaler_dw=args.scaler_dw, freq=args.freq, temp=args.temp,
+                enable_resistance_variance=args.enable_resistance_variance, resistance_variance_gamma=args.resistance_variance_gamma, 
                 enable_SAF=args.enable_SAF, enable_noise=args.enable_noise, enable_ec_SAF=args.enable_ec_SAF).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     criterion = torch.nn.CrossEntropyLoss().to(device)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=2, verbose=True, threshold=0.5, threshold_mode='rel', min_lr=1e-4)
     loss_log = []
+
     if not args.test:
         for epoch in range(args.epochs):
             print("epoch {0}, and now lr = {1:.4f}\n".format(epoch, optimizer.param_groups[0]['lr']))

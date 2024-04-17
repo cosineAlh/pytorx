@@ -33,8 +33,8 @@ class w2g(nn.Module):
         self.Gmin = Gmin
         self.G_SA0 = G_SA0
         self.G_SA1 = G_SA1
-        self.p_SA0 = 0.1
-        self.p_SA1 = 0.1
+        self.p_SA0 = 0.1 # 0.0175
+        self.p_SA1 = 0.1 # 0.0904
         self.enable_rand = enable_rand
         self.enable_SAF = enable_SAF
         self.SAF_pos = SAF(weight_shape, p_SA0=self.p_SA0, p_SA1=self.p_SA1, G_SA0=self.G_SA0, G_SA1=self.G_SA1)
@@ -53,10 +53,10 @@ class w2g(nn.Module):
         return output
 
     def error_compensation(self):
-        pos_SA0 = self.SAF_pos.index_SA0().float().cuda()
-        pos_SA1 = self.SAF_pos.index_SA1().float().cuda()
-        neg_SA0 = self.SAF_neg.index_SA0().float().cuda()
-        neg_SA1 = self.SAF_neg.index_SA1().float().cuda()
+        pos_SA0 = self.SAF_pos.index_SA0().float()#.cuda()
+        pos_SA1 = self.SAF_pos.index_SA1().float()#.cuda()
+        neg_SA0 = self.SAF_neg.index_SA0().float()#.cuda()
+        neg_SA1 = self.SAF_neg.index_SA1().float()#.cuda()
         G_pos_diff = (self.G_pos-self.G_SA0)*pos_SA0 + (self.G_pos-self.G_SA1)*pos_SA1
         G_neg_diff = (self.G_neg-self.G_SA0)*neg_SA0 + (self.G_neg-self.G_SA1)*neg_SA1
 

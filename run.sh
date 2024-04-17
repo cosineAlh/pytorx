@@ -4,22 +4,18 @@
 benchmark="./benchmark/mnist.py"
 
 ############### Neural network ############################
-epochs=20
+epochs=1
 batch_size=1000
 test_batch_size=100
-crxb_size=64
-vdd=3.3
+crxb_size=128
+vdd=1
 gwire=0.375
 gload=0.25
-gmax=0.000333
-gmin=0.0000000333
-ir_drop=false
+gmax=3.85e-8
+gmin=5e-9
 scaler_dw=1
-test=false
-enable_noise=false
-enable_SAF=false
-enable_ec_SAF=false
-freq=10e6
+resistance_variance_gamma=0.1
+freq=1.2e9
 temp=300
 
 {
@@ -33,13 +29,19 @@ python3 $benchmark  --epochs $epochs\
                     --gload $gload\
                     --gmax $gmax\
                     --gmin $gmin\
-                    --ir_drop $ir_drop\
+                    --test \
+                    --enable_resistance_variance \
+                    --no_cuda \
+                    --resistance_variance_gamma $resistance_variance_gamma\
                     --scaler_dw $scaler_dw\
-                    --test $test\
-                    --enable_noise $enable_noise\
-                    --enable_SAF $enable_SAF\
-                    --enable_ec_SAF $enable_ec_SAF\
                     --freq $freq\
                     --temp $temp
 } &
 
+# --enable_ec_SAF \
+# --ir_drop \
+# --test \
+# --enable_noise \
+# --no_cuda \
+# --enable_SAF \
+# --enable_resistance_variance \

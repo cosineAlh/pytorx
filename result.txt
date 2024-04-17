@@ -1,0 +1,53 @@
+vdd=3.3
+crxb_size=64
+gmax=0.000333
+gmin=0.0000000333
+freq=10e6
+temp=300
+
+test no variations acc=98.05
+
+test noise acc=93.46
+test SAF acc=12.81
+test ir_drop acc=97.75
+test variation acc=97.99
+
+test SAF + noise acc=13.28
+test SAF + ir_drop acc=13.5
+test noise + ir_drop acc=80.5
+
+test SAF + ecc acc=98.11
+test SAF + noise + ir_drop acc=13.3
+
+#=====================================
+test noise temp=310 acc=93.38
+test noise temp=320 acc=93.23
+test noise temp=330 acc=93.21
+test noise temp=340 acc=93.14
+test noise temp=350 acc=93.06
+test noise temp=360 acc=92.95
+test noise temp=370 acc=92.83
+test noise temp=380 acc=92.34
+test noise temp=390 acc=92.29
+test noise temp=400 acc=92.28
+
+check: wrong result!
+
+#=====================================
+test variation temp=320 acc=97.99
+
+check: wrong result!
+
+#=====================================
+vdd=1
+crxb_size=128
+gmax=3.85e-8
+gmin=5e-9
+freq=1.2e9
+temp=300
+
+test no variations acc=98.71
+test variation temp=300 gmax=3.85e-8 gmin=5.0e-9 acc=98.49
+test variation temp=310 gmax=3.80e-8 gmin=5.1e-9 acc=98.57
+test variation temp=320 gmax=3.70e-8 gmin=5.2e-9 acc=98.58
+test variation temp=400 gmax=2.32e-8 gmin=6.0e-9 acc=10.39

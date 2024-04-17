@@ -22,7 +22,7 @@ class crxb_Conv2d(nn.Conv2d):
 
     Args:
         ir_drop(bool): switch that enables the ir drop calculation.
-        device(torch.device): device index to select. It’s a no-op if this argument is a negative integer or None.
+        device(torch.device): device index to select. Its a no-op if this argument is a negative integer or None.
         gmax(float): maximum conductance of the ReRAM.
         gmin(float): minimun conductance of the ReRAM.
         gwire(float): conductance of the metal wire.
@@ -40,6 +40,7 @@ class crxb_Conv2d(nn.Conv2d):
 
     def __init__(self, in_channels, out_channels, kernel_size, ir_drop, device, gmax, gmin, gwire,
                  gload, scaler_dw=1, vdd=3.3, stride=1, padding=0, dilation=1, enable_noise=True,
+                 enable_resistance_variance=False, resistance_variance_gamma=0. ,
                  freq=10e6, temp=300, groups=1, bias=True, crxb_size=64, quantize=8, enable_SAF=False, enable_ec_SAF=False):
         super(crxb_Conv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias)
         assert self.groups == 1, "currently not support grouped convolution for custom conv"
@@ -84,6 +85,8 @@ class crxb_Conv2d(nn.Conv2d):
         ################ Stochastic Conductance Noise setup #########################
         # parameters setup
         self.enable_stochastic_noise = enable_noise
+        self.enable_resistance_variance = enable_resistance_variance
+        self.resistance_variance_gamma = resistance_variance_gamma
         self.freq = freq  # operating frequency
         self.kb = 1.38e-23  # Boltzmann const
         self.temp = temp  # temperature in kelvin
@@ -117,22 +120,25 @@ class crxb_Conv2d(nn.Conv2d):
         if self.h_out is None and self.w_out is None:
             self.h_out = int((input.shape[2] - self.kernel_size[0] + 2 * self.padding[0]) / self.stride[0] + 1)
             self.w_out = int((input.shape[3] - self.kernel_size[0] + 2 * self.padding[0]) / self.stride[0] + 1)
-
         # 2.1 flatten and unfold the weight and input
         input_unfold = F.unfold(input_quan, kernel_size=self.kernel_size[0], dilation=self.dilation, padding=self.padding, stride=self.stride)
         weight_flatten = weight_quan.view(self.out_channels, -1)
-
         # 2.2. add paddings
         weight_padded = F.pad(weight_flatten, self.w_pad, mode='constant', value=0)
         input_padded = F.pad(input_unfold, self.input_pad, mode='constant', value=0)
-        
         # 2.3. reshape to crxb size
         input_crxb = input_padded.view(input.shape[0], 1, self.crxb_row, self.crxb_size, input_padded.shape[2])
         weight_crxb = weight_padded.view(self.crxb_col, self.crxb_size, self.crxb_row, self.crxb_size).transpose(1, 2)
         # convert the floating point weight into conductance pair values
         G_crxb = self.w2g(weight_crxb)
-
         # 2.4. compute matrix multiplication followed by reshapes
+        if self.enable_resistance_variance:
+            gaussian_variance = (torch.randn(G_crxb.shape)) * self.resistance_variance_gamma
+            if self.device.type == 'cuda':
+                gaussian_variance = gaussian_variance.cuda()
+            resistance_variance = torch.exp(gaussian_variance)
+            G_crxb = G_crxb/resistance_variance
+        
         # this block is for introducing stochastic noise into ReRAM conductance
         if self.enable_stochastic_noise:
             rand_p = nn.Parameter(torch.Tensor(G_crxb.shape), requires_grad=False)
@@ -152,7 +158,7 @@ class crxb_Conv2d(nn.Conv2d):
                 G_p = G_crxb * (self.b * G_crxb + self.a) / (G_crxb - (self.b * G_crxb + self.a))
                 G_p[rand_p.ge(self.tau)] = 0
                 G_g = grms * rand_g
-            G_crxb += (G_g.cuda() + G_p)
+            G_crxb += (G_g + G_p)
 
         # this block is to calculate the ir drop of the crossbar
         if self.ir_drop:
@@ -238,6 +244,7 @@ class crxb_Linear(nn.Linear):
     """
 
     def __init__(self, in_features, out_features, ir_drop, device, gmax, gmin, gwire, gload, freq=10e6,
+                 enable_resistance_variance=False, resistance_variance_gamma=0. ,
                  vdd=3.3, scaler_dw=1, temp=300, bias=True, crxb_size=64, quantize=8, enable_ec_SAF=False, enable_noise=True, enable_SAF=False):
         super(crxb_Linear, self).__init__(in_features, out_features, bias)
 
@@ -277,6 +284,8 @@ class crxb_Linear(nn.Linear):
         ################ Stochastic Conductance Noise setup #########################
         # parameters setup
         self.enable_stochastic_noise = enable_noise
+        self.enable_resistance_variance = enable_resistance_variance
+        self.resistance_variance_gamma = resistance_variance_gamma
         self.freq = freq  # operating frequency
         self.kb = 1.38e-23  # Boltzmann const
         self.temp = temp  # temperature in kelvin
@@ -316,8 +325,14 @@ class crxb_Linear(nn.Linear):
         weight_crxb = weight_padded.view(self.crxb_col, self.crxb_size, self.crxb_row, self.crxb_size).transpose(1, 2)
         # convert the floating point weight into conductance pair values
         G_crxb = self.w2g(weight_crxb)
-
         # 2.4. compute matrix multiplication
+        if self.enable_resistance_variance:
+            gaussian_variance = (torch.randn(G_crxb.shape)) *  self.resistance_variance_gamma
+            if self.device.type == "cuda":
+                gaussian_variance = gaussian_variance.cuda()
+            resistance_variance = torch.exp(gaussian_variance)
+            G_crxb = G_crxb/resistance_variance
+
         # this block is for introducing stochastic noise into ReRAM conductance
         if self.enable_stochastic_noise:
             rand_p = nn.Parameter(torch.Tensor(G_crxb.shape), requires_grad=False)
