@@ -94,11 +94,8 @@ def train(model, device, criterion, optimizer, train_loader, epoch):
         correct += pred.eq(target.view_as(pred)).sum().item()
 
         if batch_idx % 10 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), train_loader.sampler.__len__(), 100. * batch_idx / len(train_loader), loss.item()))
-
-    print('\nTrain set: Accuracy: {}/{} ({:.4f}%)\n'.format(
-        correct, train_loader.sampler.__len__(), 100. * correct / train_loader.sampler.__len__()))
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, batch_idx * len(data), train_loader.sampler.__len__(), 100. * batch_idx / len(train_loader), loss.item()))
+    print('\nTrain set: Accuracy: {}/{} ({:.4f}%)\n'.format(correct, train_loader.sampler.__len__(), 100. * correct / train_loader.sampler.__len__()))
 
     return losses.avg
 
@@ -118,19 +115,17 @@ def validate(args, model, device, criterion, val_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
 
             if args.ir_drop:
-                print('\nTest set: Accuracy: {}/{} ({:.4f}%)\n'.format(
-                    correct, val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1), 100. * correct / (val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1))))
+                print('\nTest set: Accuracy: {}/{} ({:.4f}%)\n'.format(correct, val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1), 100. * correct / (val_loader.batch_sampler.__dict__['batch_size'] * (batch_idx + 1))))
 
         test_loss /= len(val_loader.dataset)
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(
-            test_loss, correct, val_loader.sampler.__len__(), 100. * correct / val_loader.sampler.__len__()))
+        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(test_loss, correct, val_loader.sampler.__len__(), 100. * correct / val_loader.sampler.__len__()))
 
         return test_loss
 
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+    parser = argparse.ArgumentParser(description='PyTorch MNIST')
     parser.add_argument('--batch_size', type=int, default=1000, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test_batch_size', type=int, default=100, metavar='N',

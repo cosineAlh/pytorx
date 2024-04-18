@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 
 # path to benchmark
-benchmark="./benchmark/mnist.py"
+#benchmark="./benchmark/mnist.py"
+benchmark="./benchmark/CIFAR.py"
 
 ############### Neural network ############################
 epochs=1
@@ -20,6 +21,9 @@ drift_coefficient=0.1
 freq=1.2e9
 temp=300
 
+# CIFAR
+wd=1e-4
+
 {
 python3 $benchmark  --epochs $epochs\
                     --batch_size $batch_size\
@@ -33,12 +37,6 @@ python3 $benchmark  --epochs $epochs\
                     --gmin $gmin\
                     --no_cuda \
                     --test \
-                    --enable_resistance_variance \
-                    --enable_retention \
-                    --resistance_variance_gamma $resistance_variance_gamma\
-                    --retention_time $retention_time\
-                    --drift_coefficient $drift_coefficient\
-                    --scaler_dw $scaler_dw\
                     --freq $freq\
                     --temp $temp
 } &
