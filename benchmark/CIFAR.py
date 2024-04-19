@@ -169,6 +169,7 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    # Cifar
     train_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./data/', train=True, transform=transforms.Compose([
             transforms.RandomHorizontalFlip(),
@@ -182,7 +183,7 @@ def main():
             transforms.ToTensor()])),
         batch_size=args.test_batch_size, shuffle=False,
         num_workers=4, pin_memory=True)
-      
+
     model = resnet(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
                     vdd=args.vdd, ir_drop=args.ir_drop, device=device, scaler_dw=args.scaler_dw, freq=args.freq, temp=args.temp,
                     enable_retention=args.enable_retention, retention_time=args.retention_time, drift_coefficient=args.drift_coefficient,

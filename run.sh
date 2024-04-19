@@ -21,7 +21,7 @@ drift_coefficient=0.1
 freq=1.2e9
 temp=300
 
-# CIFAR
+# CIFAR & ImageNet
 wd=1e-4
 
 {
