@@ -56,6 +56,8 @@ test variation temp=320 gmax=3.70e-8 gmin=5.2e-9 acc=98.58
 comment: wrong
 
 #=====================================
+Add Retention:
+
 test no variations acc=98.71
 test variation + retention 1e2s drift=0.0 acc=98.38
 test variation + retention 1e2s drift=0.1 acc=93.16
@@ -63,9 +65,18 @@ test variation + retention 1e2s drift=0.2 acc=53.85
 test variation + retention 1e2s drift=0.3 acc=21.71
 test variation + retention 1e2s drift=0.4 acc=10.50
 
+comment: right !
+
 #=====================================
+Test Vdd:
+
 test vdd=1 acc=98.71
 test vdd=2 acc=98.61
 test vdd=3 acc=98.50
 test vdd=4 acc=98.28
 test vdd=5 acc=97.96
+
+comment: wrong
+
+#=====================================
+Add Vdd Variation:

@@ -66,8 +66,7 @@ def train(model, device, criterion, optimizer, train_loader, epoch):
         correct += pred.eq(target.view_as(pred)).sum().item()
 
         if batch_idx % 100 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), train_loader.sampler.__len__(), 100. * batch_idx / len(train_loader), loss.item()))
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, batch_idx * len(data), train_loader.sampler.__len__(), 100. * batch_idx / len(train_loader), loss.item()))
     print('\nTrain set: Accuracy: {}/{} ({:.4f}%)\n'.format(correct, train_loader.sampler.__len__(), 100. * correct / train_loader.sampler.__len__()))
 
     return losses.avg
@@ -90,8 +89,9 @@ def validate(args, model, device, criterion, val_loader, epoch=0):
 
         test_loss /= len(val_loader.dataset)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(test_loss, correct, val_loader.sampler.__len__(), 100. * correct / val_loader.sampler.__len__()))
-        
-        return test_loss
+        test_acc = 100. * correct / val_loader.sampler.__len__()
+
+        return test_loss, test_acc
 
 
 def main():
@@ -168,6 +168,7 @@ def main():
     torch.manual_seed(args.seed)
 
     device = torch.device("cuda" if use_cuda else "cpu")
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
     # Cifar
     train_loader = torch.utils.data.DataLoader(
@@ -193,33 +194,32 @@ def main():
     criterion = torch.nn.CrossEntropyLoss().to(device)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[200, 260, 320 ], last_epoch=-1)
     loss_log = []
+    best_acc = 0
 
     if not args.test:
         for epoch in range(args.epochs):
             print("epoch {0}, and now lr = {1:.4f}\n".format(epoch, optimizer.param_groups[0]['lr']))
             train_loss = train(model=model, device=device, criterion=criterion, optimizer=optimizer, train_loader=train_loader, epoch=epoch)
-            val_loss = validate(args=args, model=model, device=device, criterion=criterion, val_loader=test_loader, epoch=epoch)
-            scheduler.step(val_loss)
-
-            # break the training
-            if optimizer.param_groups[0]['lr'] < ((scheduler.min_lrs[0] / scheduler.factor) + scheduler.min_lrs[0]) / 2:
-                print("Accuracy not improve anymore, stop training!")
-                break
-
+            val_loss, test_acc = validate(args=args, model=model, device=device, criterion=criterion, val_loader=test_loader, epoch=epoch)
+            scheduler.step()
+            
             loss_log += [(epoch, train_loss, val_loss)]
             is_best = val_loss > best_error
             best_error = min(val_loss, best_error)
 
+            is_best_acc = test_acc > best_acc
+            best_acc = max(test_acc, best_acc)
             filename = './benchmark/checkpoint_cifar_' + str(args.crxb_size) + '.pth.tar'
-            save_checkpoint(state={
-                'epoch': epoch + 1,
-                'state_dict': model.state_dict(),
-                'best_acc1': best_error,
-                'optimizer': optimizer.state_dict(),
-            }, is_best=is_best, filename=filename)
+            if epoch>0 and is_best_acc:
+                save_checkpoint(state={
+                    'epoch': epoch + 1,
+                    'state_dict': model.state_dict(),
+                    'best_acc1': best_error,
+                    'optimizer': optimizer.state_dict(),
+                }, is_best=is_best, filename=filename)
 
     elif args.test:
-        modelfile = './benchmark/checkpoint_' + str(args.crxb_size) + '.pth.tar'
+        modelfile = './benchmark/checkpoint_cifar_' + str(args.crxb_size) + '.pth.tar'
         if os.path.isfile(modelfile):
             print("=> loading checkpoint '{}'".format(modelfile))
             checkpoint = torch.load(modelfile)
@@ -227,7 +227,7 @@ def main():
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}'".format(modelfile))
             
-            test_loss = validate(args=args, model=model, device=device, criterion=criterion, val_loader=test_loader)
+            test_loss, test_acc = validate(args=args, model=model, device=device, criterion=criterion, val_loader=test_loader)
 
 if __name__ == '__main__':
     main()

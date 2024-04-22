@@ -61,10 +61,11 @@ def conv1x1(in_planes, out_planes, stride=1):
 def Bi_Linear(in_features, out_features):
     return QuanLinear(in_features, out_features, bias=False)
 
+
 class BasicBlock_bi(nn.Module):
     expansion = 1
 
-    def __init__(self, planes, stride=1, option='A'):
+    def __init__(self, planes, stride=1):
         super(BasicBlock_bi, self).__init__()
         self.conv1 = conv3x3(planes[0], planes[1], stride=stride)
         self.bn1 = nn.BatchNorm2d(planes[1])
@@ -73,30 +74,24 @@ class BasicBlock_bi(nn.Module):
         self.shortcut = nn.Sequential()
 
         #if stride != 1 or in_planes != planes:
-        if option == 'A':
-            """
-            For CIFAR10 ResNet paper uses option A.
-            """
-            if stride ==2:
-                if planes[2] > planes[0] :
-                    self.shortcut  = LambdaLayer(lambda x:
-                                        F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, 0,
-                                            planes[2] -planes[0]),"constant", 0))
-                else:
-                    self.shortcut = LambdaLayer(lambda x: x[:, :planes[2] , ::2, ::2])
-            elif stride==1:
-                if planes[2]  > planes[0]:
-                    self.shortcut = LambdaLayer(lambda x:
-                                        F.pad(x[:, :, :, :], (0, 0, 0, 0, 0,
-                                            planes[2] -planes[0]),"constant", 0))
-                else:
-                    self.shortcut = LambdaLayer(lambda x: x[:, :planes[2] , :, :])
-        elif option == 'B':
-            self.shortcut = nn.Sequential(
-                    conv1x1(in_planes, self.expansion * planes,stride=stride),
-                    nn.BatchNorm2d(self.expansion * planes)
-            )
-
+        if stride ==2:
+            if planes[2] > planes[0] :
+                self.shortcut  = LambdaLayer(lambda x:
+                                    F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, 0,
+                                        planes[2] -planes[0]),"constant", 0))
+            else:
+                self.shortcut = LambdaLayer(lambda x: x[:, :planes[2] , ::2, ::2])
+        elif stride==1:
+            if planes[2]  > planes[0]:
+                self.shortcut = LambdaLayer(lambda x:
+                                    F.pad(x[:, :, :, :], (0, 0, 0, 0, 0,
+                                        planes[2] -planes[0]),"constant", 0))
+            else:
+                self.shortcut = LambdaLayer(lambda x: x[:, :planes[2] , :, :])
+        #self.shortcut = nn.Sequential(
+        #        conv1x1(in_planes, self.expansion * planes,stride=stride),
+        #        nn.BatchNorm2d(self.expansion * planes)
+        #)
 
     def forward(self, x):
         out = self.bn1(self.conv1(x))
@@ -106,6 +101,7 @@ class BasicBlock_bi(nn.Module):
         out = self.bn2(out)
 
         return out
+
 
 class ResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
@@ -187,21 +183,3 @@ def resnet20():
 
 # def resnet1202():
 #     return ResNet(BasicBlock, [200, 200, 200])
-
-
-def test(net):
-    import numpy as np
-    total_params = 0
-
-    for x in filter(lambda p: p.requires_grad, net.parameters()):
-        total_params += np.prod(x.data.numpy().shape)
-    print("Total number of params", total_params)
-    print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>1, net.parameters()))))
-
-
-if __name__ == "__main__":
-    for net_name in __all__:
-        if net_name.startswith('resnet'):
-            print(net_name)
-            test(globals()[net_name]())
-            print()
