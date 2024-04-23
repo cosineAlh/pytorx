@@ -39,6 +39,7 @@ test variation temp=320 acc=97.99
 comment: wrong result!
 
 #=====================================
+# MNIST
 #=====================================
 vdd=1
 crxb_size=128
@@ -65,6 +66,18 @@ test variation + retention 1e2s drift=0.2 acc=53.85
 test variation + retention 1e2s drift=0.3 acc=21.71
 test variation + retention 1e2s drift=0.4 acc=10.50
 
+test variation + retention 1e2s temp=300 drift=0.0   acc=98.49
+test variation + retention 1e2s temp=310 drift=0.013 acc=98.46
+test variation + retention 1e2s temp=320 drift=0.039 acc=98.30
+test variation + retention 1e2s temp=330 drift=0.065 acc=97.17
+test variation + retention 1e2s temp=340 drift=0.13  acc=86.44
+test variation + retention 1e2s temp=350 drift=0.2   acc=57.95
+test variation + retention 1e2s temp=360 drift=0.31  acc=19.54
+test variation + retention 1e2s temp=370 drift=0.35  acc=13.77
+test variation + retention 1e2s temp=380 drift=0.38  acc=11.27
+test variation + retention 1e2s temp=390 drift=0.40  acc=10.41
+test variation + retention 1e2s temp=400 drift=0.40  acc=10.41
+
 comment: right !
 
 #=====================================
@@ -76,7 +89,50 @@ test vdd=3 acc=98.50
 test vdd=4 acc=98.28
 test vdd=5 acc=97.96
 
-comment: wrong
+comment: little change
 
 #=====================================
 Add Vdd Variation:
+
+test vdd=1 acc=98.56
+test vdd=2 acc=98.49
+test vdd=3 acc=98.45
+test vdd=4 acc=98.17
+test vdd=5 acc=97.89
+
+comment: little change
+
+#=====================================
+Add IR Drop and Vdd Variation:
+
+test ir_drop vdd=1 acc=98.72
+test ir_drop vdd=2 acc=98.61
+test ir_drop vdd=3 acc=98.50
+test ir_drop vdd=4 acc=98.28
+test ir_drop vdd=5 acc=97.96
+
+comment: why the same with no variation?
+
+#=====================================
+# CIFAR10
+#=====================================
+Add Retention:
+
+test no variations acc=84.56
+test variation + retention 1e2s drift=0.0 acc=78.60
+test variation + retention 1e2s drift=0.1 acc=17.02
+test variation + retention 1e2s drift=0.2 acc=10.57
+test variation + retention 1e2s drift=0.3 acc=9.83
+test variation + retention 1e2s drift=0.4 acc=9.80
+
+test variation + retention 1e2s temp=300 drift=0.0   acc=78.60
+test variation + retention 1e2s temp=310 drift=0.013 acc=78.04
+test variation + retention 1e2s temp=320 drift=0.039 acc=73.52
+test variation + retention 1e2s temp=330 drift=0.065 acc=65.68
+test variation + retention 1e2s temp=340 drift=0.13  acc=35.95
+test variation + retention 1e2s temp=350 drift=0.2   acc=17.02
+test variation + retention 1e2s temp=360 drift=0.31  acc=10.63
+test variation + retention 1e2s temp=370 drift=0.35  acc=10.20
+test variation + retention 1e2s temp=380 drift=0.38  acc=10.65
+test variation + retention 1e2s temp=390 drift=0.40  acc=10.57
+test variation + retention 1e2s temp=400 drift=0.40  acc=10.57

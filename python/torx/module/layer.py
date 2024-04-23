@@ -195,6 +195,13 @@ class crxb_Conv2d(nn.Conv2d):
             output_crxb = output_crxb.contiguous().view(self.crxb_col, self.crxb_row, self.crxb_size, input.shape[0], input_padded.shape[2])
             output_crxb = output_crxb.permute(3, 0, 1, 2, 4)
         else:
+            # give input voltage a noise
+            #gaussian_variance = (torch.randn(input_crxb.shape)) * 0.1
+            #if self.device.type == "cuda":
+            #    gaussian_variance = gaussian_variance.cuda()
+            #input_variance = (1+gaussian_variance)
+            #input_crxb = input_crxb*input_variance
+
             output_crxb = torch.matmul(G_crxb[0], input_crxb) - torch.matmul(G_crxb[1], input_crxb)
 
         # 3. perform ADC operation (i.e., current to digital conversion)
@@ -348,7 +355,7 @@ class crxb_Linear(nn.Linear):
             G_crxb = torch.clamp(G_crxb*ratio, G_crxb.min(), G_crxb.max())       
 
         if self.enable_resistance_variance:
-            gaussian_variance = (torch.randn(G_crxb.shape)) *  self.resistance_variance_gamma
+            gaussian_variance = (torch.randn(G_crxb.shape)) * self.resistance_variance_gamma
             if self.device.type == "cuda":
                 gaussian_variance = gaussian_variance.cuda()
             resistance_variance = torch.exp(gaussian_variance)
@@ -403,6 +410,13 @@ class crxb_Linear(nn.Linear):
             output_crxb = output_crxb.contiguous().view(self.crxb_col, self.crxb_row, self.crxb_size, input.shape[0],1)
             output_crxb = output_crxb.permute(3, 0, 1, 2, 4)
         else:
+            # give input voltage a noise
+            #gaussian_variance = (torch.randn(input_crxb.shape)) * 0.1
+            #if self.device.type == "cuda":
+            #    gaussian_variance = gaussian_variance.cuda()
+            #input_variance = (1+gaussian_variance)
+            #input_crxb = input_crxb*input_variance
+
             output_crxb = torch.matmul(G_crxb[0], input_crxb) - torch.matmul(G_crxb[1], input_crxb)
 
         # 3. perform ADC operation (i.e., current to digital conversion)
