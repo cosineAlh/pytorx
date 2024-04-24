@@ -12,14 +12,14 @@ scaler_dw=1
 lr=0.01
 
 crxb_size=128
-vdd=1
+vdd=3
 gwire=0.375
 gload=0.25
 gmax=3.85e-8
 gmin=5e-9
 resistance_variance_gamma=0.1
 retention_time=1e2
-drift_coefficient=0.31
+drift_coefficient=0.1
 freq=1.2e9
 temp=300
 
@@ -40,7 +40,6 @@ python3 $benchmark  --epochs $epochs\
                     --gmin $gmin\
                     --test \
                     --enable_resistance_variance \
-                    --enable_retention \
                     --resistance_variance_gamma $resistance_variance_gamma\
                     --retention_time $retention_time\
                     --drift_coefficient $drift_coefficient\

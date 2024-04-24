@@ -91,8 +91,18 @@ test vdd=5 acc=97.96
 
 comment: little change
 
+test variation vdd=0.1 acc=97.37
+test variation vdd=0.3 acc=98.43
+test variation vdd=0.5 acc=98.55
+test variation vdd=0.7 acc=98.60
+test variation vdd=1 acc=98.49
+test variation vdd=2 acc=98.52
+test variation vdd=3 acc=98.42
+
+comment: little change
+
 #=====================================
-Add Vdd Variation:
+Add Vin Variation:
 
 test vdd=1 acc=98.56
 test vdd=2 acc=98.49
@@ -102,8 +112,18 @@ test vdd=5 acc=97.89
 
 comment: little change
 
+test variation vdd=0.1 acc=97.14
+test variation vdd=0.3 acc=98.39
+test variation vdd=0.5 acc=98.37
+test variation vdd=0.7 acc=98.37
+test variation vdd=1 acc=98.42
+test variation vdd=2 acc=98.40
+test variation vdd=3 acc=98.17
+
+comment: a little different
+
 #=====================================
-Add IR Drop and Vdd Variation:
+Add IR Drop and Vin Variation:
 
 test ir_drop vdd=1 acc=98.72
 test ir_drop vdd=2 acc=98.61
@@ -136,3 +156,32 @@ test variation + retention 1e2s temp=370 drift=0.35  acc=10.20
 test variation + retention 1e2s temp=380 drift=0.38  acc=10.65
 test variation + retention 1e2s temp=390 drift=0.40  acc=10.57
 test variation + retention 1e2s temp=400 drift=0.40  acc=10.57
+
+#=====================================
+Test Vdd:
+
+test variation vdd=0.1 acc=64.33
+test variation vdd=0.3 acc=77.35
+test variation vdd=0.5 acc=78.51
+test variation vdd=0.7 acc=78.80
+test variation vdd=1 acc=78.60
+test variation vdd=2 acc=73.21
+test variation vdd=3 acc=59.46
+
+comment: more obvious
+
+#=====================================
+Add Vin Variation:
+
+test variation vdd=0.1 acc=53.04
+test variation vdd=0.3 acc=65.84
+test variation vdd=0.5 acc=67.13
+test variation vdd=0.7 acc=67.19
+test variation vdd=1 acc=67.52
+test variation vdd=2 acc=63.68
+test variation vdd=3 acc=51.50
+
+comment: a little different
+
+#=====================================
+Add IR Drop and Vin Variation:
